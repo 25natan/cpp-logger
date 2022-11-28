@@ -6,41 +6,30 @@
 #include <ctime>
 #include <map>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 enum LogType{Info, Error, Debug};
 class Logger{
     public:
-    Logger():m_isStd(true){
-        initLogTypesMap();
-    }
-    Logger(const std::string& fileName):m_isStd(false), m_logFile(fileName){
-        initLogTypesMap();
-    }
+    Logger():m_isStd(true),
+        m_typesMap{{LogType::Info, "INFO"}, {LogType::Error, "ERROR"}, {LogType::Debug, "DEBUG"}}{}
+    Logger(const std::string& fileName):m_isStd(false), m_logFile(fileName), 
+        m_typesMap{{LogType::Info, "INFO"}, {LogType::Error, "ERROR"}, {LogType::Debug, "DEBUG"}}{}
     void log(const LogType& type, const std::string& message){
         std::ostream& out = m_isStd ? std::cout : m_logFile;
-        out << '[' + now() + "][" + m_typesMap[type] + "] " + message << '\n';
+        out << '[' << timeStamp() << "][" << m_typesMap[type] << "] " << message << '\n';
     }
     private:
-    void initLogTypesMap(){
-        m_typesMap[LogType::Info] = "INFO";
-        m_typesMap[LogType::Error] = "ERROR";
-        m_typesMap[LogType::Debug] = "DEBUG";
-    }
-    std::string now(){
+    std::string timeStamp(){
         auto timec = std::time(NULL);
         auto timecpp = std::chrono::system_clock::now().time_since_epoch();
         auto timeInfo = std::localtime(&timec);
-        auto hour = timeInfo->tm_hour;
-        auto minutes = timeInfo->tm_min;
-        auto seconds = timeInfo->tm_sec;
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(timecpp).count() % 1000;
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(timecpp).count() % 1000;
-        auto timeStr = std::string();
-        timeStr += std::to_string(hour / 10) + std::to_string(hour % 10);
-        timeStr += ':' + std::to_string(minutes / 10) + std::to_string(minutes % 10);
-        timeStr += ':' + std::to_string(seconds / 10) + std::to_string(seconds % 10);
-        timeStr += ':' + std::to_string(milliseconds / 100) + std::to_string((milliseconds % 100) / 10) + std::to_string(milliseconds % 10);
-        timeStr += ':' + std::to_string(microseconds / 100) + std::to_string((microseconds % 100) / 10) + std::to_string(microseconds % 10);
-        return timeStr;
+        auto strStream = std::stringstream();
+        strStream << std::setfill('0') << std::setw(2) << timeInfo->tm_hour << ':' << std::setw(2) << timeInfo->tm_min << ':' 
+            << std::setw(2) << timeInfo->tm_sec << ':' << std::setw(3) << milliseconds << ':' << std::setw(3) << microseconds;
+        return strStream.str();
     }
     std::ofstream m_logFile;
     std::map<LogType, std::string> m_typesMap;
